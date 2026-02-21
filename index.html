@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jotham Cuts – Video Editor</title>
+<meta name="description" content="Retention-focused YouTube video editor specialising in long-form outdoor, discovery, and hobby content. DaVinci Resolve. Every cut intentional.">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black: #080808;
+  --near-black: #0e0e0e;
+  --film: #111110;
+  --cut: #ff3d00;
+  --cut-dim: #6b1900;
+  --white: #f0ede6;
+  --muted: #5a5752;
+  --card: #141312;
+  --border: #1e1c18;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: 'DM Mono', monospace;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ── CURSOR ── */
+.cursor { position: fixed; width: 12px; height: 12px; background: var(--cut); border-radius: 50%; pointer-events: none; z-index: 9999; transform: translate(-50%,-50%); transition: width .2s, height .2s; mix-blend-mode: normal; }
+.cursor-ring { position: fixed; width: 36px; height: 36px; border: 1px solid rgba(255,61,0,.35); border-radius: 50%; pointer-events: none; z-index: 9998; transform: translate(-50%,-50%); transition: all .18s ease; }
+body:hover .cursor, body:hover .cursor-ring { opacity: 1; }
+
+/* ── FILMSTRIP NAV ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  background: var(--film);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 48px; height: 52px;
+}
+.nav-logo { font-family: 'Bebas Neue'; font-size: 20px; letter-spacing: .08em; color: var(--white); text-decoration: none; display: flex; align-items: center; gap: 10px; cursor: none; }
+.nav-logo-dot { width: 8px; height: 8px; background: var(--cut); border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.nav-links { display: flex; gap: 32px; align-items: center; }
+.nav-links a { font-size: 9px; letter-spacing: .25em; text-transform: uppercase; color: var(--muted); text-decoration: none; transition: color .2s; cursor: none; }
+.nav-links a:hover { color: var(--white); }
+.nav-cta { font-family: 'DM Mono'; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; background: var(--cut); color: var(--white); border: none; padding: 10px 20px; cursor: none; transition: background .2s; text-decoration: none; }
+.nav-cta:hover { background: #e03500; }
+
+/* ── TICKER ── */
+.ticker { position: fixed; top: 52px; left: 0; right: 0; z-index: 199; height: 22px; background: var(--black); border-bottom: 1px solid var(--border); overflow: hidden; display: flex; align-items: center; }
+.ticker-inner { display: flex; animation: ticker 20s linear infinite; white-space: nowrap; }
+.ticker-inner span { font-size: 8px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); padding: 0 20px; }
+.ticker-inner span.t-cut { color: var(--cut); }
+@keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+/* ── SECTIONS COMMON ── */
+section { padding: 120px 48px; }
+.section-label { font-size: 9px; letter-spacing: .35em; text-transform: uppercase; color: var(--cut); margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+.section-label::before { content:''; width: 28px; height: 1px; background: var(--cut); }
+.section-title { font-family: 'Bebas Neue'; font-size: clamp(42px, 6vw, 80px); line-height: .95; color: var(--white); margin-bottom: 24px; }
+
+/* ── HERO ── */
+#hero {
+  min-height: 100vh;
+  padding-top: 140px;
+  display: flex; align-items: center;
+  position: relative; overflow: hidden;
+}
+.hero-grid { display: grid; grid-template-columns: 1fr 300px; gap: 60px; align-items: center; max-width: 1200px; width: 100%; }
+.hero-eyebrow { font-size: 10px; letter-spacing: .35em; text-transform: uppercase; color: var(--cut); margin-bottom: 28px; display: flex; align-items: center; gap: 14px; opacity: 0; animation: fadeUp .6s .2s forwards; }
+.hero-eyebrow::before { content:''; width: 28px; height: 1px; background: var(--cut); }
+.hero-h1 { font-family: 'Bebas Neue'; font-size: clamp(72px, 12vw, 150px); line-height: .9; letter-spacing: -.01em; opacity: 0; animation: fadeUp .7s .35s forwards; margin-bottom: 32px; }
+.hero-h1 .italic { font-family: 'Instrument Serif'; font-style: italic; color: var(--cut); font-size: .82em; }
+.hero-h1 .outline { -webkit-text-stroke: 1.5px var(--white); color: transparent; }
+.hero-sub { font-size: 11px; line-height: 1.9; color: var(--muted); max-width: 460px; opacity: 0; animation: fadeUp .7s .5s forwards; margin-bottom: 44px; }
+.hero-sub em { color: var(--white); font-style: normal; }
+.hero-actions { display: flex; gap: 16px; align-items: center; opacity: 0; animation: fadeUp .7s .65s forwards; }
+.btn-primary { display: inline-flex; align-items: center; gap: 10px; background: var(--cut); color: var(--white); font-family: 'DM Mono'; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; padding: 16px 28px; text-decoration: none; transition: all .2s; cursor: none; position: relative; overflow: hidden; }
+.btn-primary::before { content:''; position: absolute; top:0; left:-100%; width:100%; height:100%; background: rgba(255,255,255,.08); transition: left .3s; }
+.btn-primary:hover::before { left: 0; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,61,0,.25); }
+.btn-ghost { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); font-family: 'DM Mono'; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; text-decoration: none; transition: color .2s; cursor: none; border: 1px solid var(--border); padding: 16px 24px; }
+.btn-ghost:hover { color: var(--white); border-color: var(--muted); }
+
+/* Hero stats */
+.hero-stats { display: flex; flex-direction: column; gap: 2px; opacity: 0; animation: fadeIn .8s .9s forwards; }
+.hero-stat { background: var(--film); border-left: 2px solid var(--cut-dim); padding: 20px; transition: border-color .2s; }
+.hero-stat:hover { border-color: var(--cut); }
+.hero-stat-num { font-family: 'Bebas Neue'; font-size: 38px; line-height: 1; color: var(--white); }
+.hero-stat-num sub { font-size: 16px; color: var(--muted); font-family: 'DM Mono'; }
+.hero-stat-label { font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+
+/* Timeline bar */
+.timeline-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 48px; background: var(--film); border-top: 1px solid var(--border); z-index: 100; display: flex; align-items: center; padding: 0 48px; gap: 3px; overflow: hidden; }
+.tl-block { height: 20px; border-radius: 2px; opacity: .35; flex-shrink: 0; }
+.playhead { position: fixed; bottom: 0; width: 2px; height: 48px; background: var(--cut); z-index: 101; animation: playhead 10s linear infinite; box-shadow: 0 0 8px var(--cut); }
+.playhead::before { content:''; position: absolute; top: -6px; left: -5px; border: 6px solid transparent; border-top-color: var(--cut); }
+@keyframes playhead { 0%{left:48px} 100%{left:calc(100% - 48px)} }
+
+/* Timecode */
+.timecode { position: fixed; bottom: 56px; left: 48px; font-size: 9px; letter-spacing: .15em; color: var(--muted); z-index: 102; font-variant-numeric: tabular-nums; }
+.timecode span { color: var(--cut); }
+
+/* Grain */
+body::before { content:''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E"); pointer-events: none; z-index: 1; opacity: .5; }
+
+/* ── ABOUT ── */
+#about { background: var(--film); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; max-width: 1100px; }
+.about-visual { position: relative; }
+.about-frame { background: var(--card); border: 1px solid var(--border); padding: 40px; position: relative; overflow: hidden; }
+.about-frame::before { content: 'JOTHAM CUTS'; position: absolute; top: 16px; right: 16px; font-family: 'Bebas Neue'; font-size: 11px; letter-spacing: .15em; color: var(--cut-dim); }
+.about-initials { font-family: 'Bebas Neue'; font-size: 120px; line-height: 1; color: var(--cut); opacity: .15; position: absolute; bottom: -10px; right: 20px; }
+.about-role { font-size: 11px; letter-spacing: .25em; text-transform: uppercase; color: var(--muted); margin-bottom: 24px; }
+.about-name { font-family: 'Bebas Neue'; font-size: 52px; color: var(--white); line-height: 1; margin-bottom: 8px; }
+.about-name span { color: var(--cut); }
+.about-software { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.software-tag { font-size: 9px; letter-spacing: .2em; text-transform: uppercase; border: 1px solid var(--border); padding: 8px 14px; color: var(--muted); }
+.software-tag.active { border-color: var(--cut-dim); color: var(--white); }
+.about-text { font-size: 12px; line-height: 1.95; color: var(--muted); }
+.about-text em { color: var(--white); font-style: normal; }
+.about-text p + p { margin-top: 20px; }
+
+/* ── PORTFOLIO ── */
+#portfolio { max-width: 1200px; margin: 0 auto; }
+.portfolio-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 48px; }
+.portfolio-item { position: relative; background: var(--card); border: 1px solid var(--border); overflow: hidden; aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; cursor: none; transition: border-color .3s; }
+.portfolio-item:hover { border-color: var(--cut-dim); }
+.portfolio-item:hover .portfolio-overlay { opacity: 1; }
+.portfolio-item:hover .portfolio-play { transform: scale(1.1); }
+.portfolio-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+.portfolio-placeholder { width: 100%; height: 100%; background: var(--film); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.portfolio-placeholder-num { font-family: 'Bebas Neue'; font-size: 48px; color: var(--border); }
+.portfolio-placeholder-text { font-size: 9px; letter-spacing: .25em; color: var(--muted); text-transform: uppercase; }
+.portfolio-overlay { position: absolute; inset: 0; background: rgba(8,8,8,.85); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity .25s; gap: 12px; padding: 20px; }
+.portfolio-play { width: 48px; height: 48px; border: 1.5px solid var(--cut); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: transform .2s; }
+.portfolio-play::after { content:''; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 16px solid var(--cut); margin-left: 4px; }
+.portfolio-title { font-family: 'Bebas Neue'; font-size: 18px; letter-spacing: .05em; color: var(--white); text-align: center; }
+.portfolio-tag { font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+.portfolio-note { margin-top: 24px; font-size: 10px; color: var(--muted); letter-spacing: .1em; text-align: center; }
+.portfolio-note a { color: var(--cut); text-decoration: none; }
+
+/* ── TESTIMONIALS ── */
+#testimonials { background: var(--film); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 48px; }
+.testimonial-card { background: var(--card); border: 1px solid var(--border); padding: 32px; position: relative; transition: border-color .2s; }
+.testimonial-card:hover { border-color: var(--cut-dim); }
+.testimonial-card::before { content: '"'; font-family: 'Instrument Serif'; font-size: 80px; color: var(--cut); opacity: .15; position: absolute; top: 16px; left: 24px; line-height: 1; }
+.testimonial-text { font-size: 12px; line-height: 1.85; color: #c0bdb8; margin-bottom: 24px; font-style: italic; position: relative; z-index: 1; }
+.testimonial-author { display: flex; align-items: center; gap: 14px; }
+.testimonial-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--cut-dim); display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue'; font-size: 14px; color: var(--cut); flex-shrink: 0; }
+.testimonial-name { font-size: 11px; color: var(--white); letter-spacing: .05em; }
+.testimonial-channel { font-size: 9px; letter-spacing: .18em; color: var(--muted); text-transform: uppercase; margin-top: 3px; }
+.testimonial-placeholder { opacity: .4; }
+.testimonial-placeholder .testimonial-text { color: var(--muted); font-style: normal; }
+
+/* ── CONTACT ── */
+#contact { max-width: 720px; margin: 0 auto; }
+.contact-intro { font-size: 12px; line-height: 1.9; color: var(--muted); margin-bottom: 48px; }
+.contact-intro em { color: var(--white); font-style: normal; }
+.form-group { margin-bottom: 20px; }
+.form-label { font-size: 9px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: block; }
+.form-input, .form-select, .form-textarea {
+  width: 100%; background: var(--card); border: 1px solid var(--border);
+  color: var(--white); font-family: 'DM Mono'; font-size: 11px; padding: 14px 16px;
+  transition: border-color .2s; outline: none; appearance: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--cut-dim); }
+.form-textarea { resize: vertical; min-height: 120px; line-height: 1.7; }
+.form-select option { background: var(--card); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-submit { width: 100%; background: var(--cut); color: var(--white); font-family: 'DM Mono'; font-size: 10px; letter-spacing: .25em; text-transform: uppercase; padding: 18px; border: none; cursor: none; transition: all .2s; margin-top: 8px; position: relative; overflow: hidden; }
+.form-submit:hover { background: #e03500; transform: translateY(-1px); }
+.form-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.form-note { font-size: 10px; color: var(--muted); margin-top: 16px; text-align: center; line-height: 1.7; }
+.form-note em { color: var(--cut); font-style: normal; }
+.form-success { display: none; background: #0a1a0a; border: 1px solid #4CAF50; padding: 24px; text-align: center; margin-top: 24px; }
+.form-success.show { display: block; animation: fadeUp .4s ease; }
+.form-success p { font-size: 11px; color: #4CAF50; line-height: 1.7; }
+
+/* ── FOOTER ── */
+footer { background: var(--film); border-top: 1px solid var(--border); padding: 40px 48px 96px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+.footer-logo { font-family: 'Bebas Neue'; font-size: 18px; letter-spacing: .08em; color: var(--white); }
+.footer-logo span { color: var(--cut); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); text-decoration: none; transition: color .2s; cursor: none; }
+.footer-links a:hover { color: var(--white); }
+.footer-copy { font-size: 9px; color: var(--muted); letter-spacing: .1em; width: 100%; }
+
+/* ── DIVIDER ── */
+.cut-divider { display: flex; align-items: center; gap: 0; overflow: hidden; height: 1px; background: linear-gradient(90deg, transparent, var(--cut-dim) 30%, var(--cut-dim) 70%, transparent); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── RESPONSIVE ── */
+@media(max-width: 900px) {
+  section { padding: 80px 24px; }
+  .nav { padding: 0 24px; }
+  .nav-links { display: none; }
+  .hero-grid { grid-template-columns: 1fr; }
+  .hero-stats { flex-direction: row; }
+  .hero-stat { flex: 1; }
+  .about-grid { grid-template-columns: 1fr; gap: 40px; }
+  .portfolio-grid { grid-template-columns: 1fr 1fr; }
+  .testimonials-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .timeline-bar, .playhead, .timecode { display: none; }
+  footer { padding: 40px 24px 60px; }
+}
+@media(max-width: 600px) {
+  .portfolio-grid { grid-template-columns: 1fr; }
+  .hero-stats { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="#hero" class="nav-logo">
+    <div class="nav-logo-dot"></div>
+    Jotham Cuts
+  </a>
+  <div class="nav-links">
+    <a href="#about">About</a>
+    <a href="#portfolio">Work</a>
+    <a href="#testimonials">Reviews</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <a href="#contact" class="nav-cta">Get Free Sample →</a>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-inner">
+    <span>Jotham Cuts</span><span class="t-cut">◆ Retention-First Editing</span>
+    <span>DaVinci Resolve</span><span class="t-cut">◆ Long-Form Specialist</span>
+    <span>Sound Design</span><span class="t-cut">◆ Every Cut Intentional</span>
+    <span>Outdoor & Discovery</span><span class="t-cut">◆ Free Sample Edit</span>
+    <span>Jotham Cuts</span><span class="t-cut">◆ Retention-First Editing</span>
+    <span>DaVinci Resolve</span><span class="t-cut">◆ Long-Form Specialist</span>
+    <span>Sound Design</span><span class="t-cut">◆ Every Cut Intentional</span>
+    <span>Outdoor & Discovery</span><span class="t-cut">◆ Free Sample Edit</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ HERO -->
+<section id="hero">
+  <div class="hero-grid">
+    <div>
+      <p class="hero-eyebrow">Video Editor · DaVinci Resolve</p>
+      <h1 class="hero-h1">
+        Every<br>
+        <span class="italic">cut</span><br>
+        <span class="outline">Intentional</span>
+      </h1>
+      <p class="hero-sub">
+        <em>Retention-focused editing</em> for long-form YouTube —
+        the kind where dead air dies, pacing breathes,
+        and <em>the reveal lands exactly when it should.</em>
+      </p>
+      <div class="hero-actions">
+        <a href="#portfolio" class="btn-primary">See My Work →</a>
+        <a href="#contact" class="btn-ghost">Request Free Sample</a>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-num">10–55<sub>min</sub></div>
+        <div class="hero-stat-label">Long-Form Output</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">0%</div>
+        <div class="hero-stat-label">Dead Air Policy</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">48<sub>hr</sub></div>
+        <div class="hero-stat-label">Avg Turnaround</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════ ABOUT -->
+<section id="about">
+  <div class="about-grid reveal">
+    <div class="about-visual">
+      <div class="about-frame">
+        <div class="about-role">Self-Taught · DaVinci Resolve</div>
+        <div class="about-name">Jotham<br><span>Cuts</span></div>
+        <div class="about-software">
+          <span class="software-tag active">DaVinci Resolve</span>
+          <span class="software-tag active">Fairlight Audio</span>
+          <span class="software-tag active">Long-Form</span>
+          <span class="software-tag">Short-Form</span>
+          <span class="software-tag">Sound Design</span>
+          <span class="software-tag">B-Roll Assembly</span>
+        </div>
+        <div class="about-initials">JC</div>
+      </div>
+    </div>
+    <div>
+      <div class="section-label">About</div>
+      <h2 class="section-title">The Edit Serves The Story</h2>
+      <div class="about-text">
+        <p>Jotham Cuts is a self-taught video editor specialising in <em>retention-focused long-form YouTube content</em>. Working entirely in DaVinci Resolve, the approach is simple: every cut is intentional, nothing stays by accident, and the viewer never gets a reason to leave.</p>
+        <p>With a sharp eye for pacing and a deep focus on sound design, the goal is always to make the audience feel present — not like they're watching a highlight reel, but like they're <em>actually there</em>. From outdoor discovery and rockhounding content to hobby and adventure channels, the edit serves the story. Not the other way around.</p>
+        <p>Free sample edits available for first-time clients. <em>No commitment. No risk.</em> Just an easy way to see if the style fits before either of us decides anything.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════ PORTFOLIO -->
+<section id="portfolio">
+  <div class="section-label reveal">Work</div>
+  <h2 class="section-title reveal">Selected Edits</h2>
+
+  <div class="portfolio-grid reveal">
+
+    <!-- SLOT 1 — Replace href with your YouTube link and update title/tag -->
+    <a href="YOUR_YOUTUBE_LINK_1" target="_blank" class="portfolio-item">
+      <div class="portfolio-placeholder">
+        <div class="portfolio-placeholder-num">01</div>
+        <div class="portfolio-placeholder-text">Add Your Video</div>
+      </div>
+      <div class="portfolio-overlay">
+        <div class="portfolio-play"></div>
+        <div class="portfolio-title">Sample Edit — Reina Chan</div>
+        <div class="portfolio-tag">Talking Head · Retention · Long-Form</div>
+      </div>
+    </a>
+
+    <!-- SLOT 2 -->
+    <a href="YOUR_YOUTUBE_LINK_2" target="_blank" class="portfolio-item">
+      <div class="portfolio-placeholder">
+        <div class="portfolio-placeholder-num">02</div>
+        <div class="portfolio-placeholder-text">Add Your Video</div>
+      </div>
+      <div class="portfolio-overlay">
+        <div class="portfolio-play"></div>
+        <div class="portfolio-title">Your Next Project</div>
+        <div class="portfolio-tag">Add Your Niche Here</div>
+      </div>
+    </a>
+
+    <!-- SLOT 3 -->
+    <a href="YOUR_YOUTUBE_LINK_3" target="_blank" class="portfolio-item">
+      <div class="portfolio-placeholder">
+        <div class="portfolio-placeholder-num">03</div>
+        <div class="portfolio-placeholder-text">Add Your Video</div>
+      </div>
+      <div class="portfolio-overlay">
+        <div class="portfolio-play"></div>
+        <div class="portfolio-title">Your Next Project</div>
+        <div class="portfolio-tag">Add Your Niche Here</div>
+      </div>
+    </a>
+
+  </div>
+
+  <p class="portfolio-note reveal">
+    More work available on request — <a href="#contact">get in touch</a> and I'll send you relevant samples for your niche.
+  </p>
+</section>
+
+<!-- ══════════════════════════════════════════════ TESTIMONIALS -->
+<section id="testimonials">
+  <div class="section-label reveal">Reviews</div>
+  <h2 class="section-title reveal">What Creators Say</h2>
+  <div class="testimonials-grid reveal">
+
+    <!-- REAL — Reina's actual feedback -->
+    <div class="testimonial-card">
+      <p class="testimonial-text">"I really like the hook and your approach. The intro structure was strong and the pacing showed a clear understanding of what keeps viewers watching."</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar">R</div>
+        <div>
+          <div class="testimonial-name">Reina Chan</div>
+          <div class="testimonial-channel">YouTube Creator</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLACEHOLDER 2 — replace when you get more -->
+    <div class="testimonial-card testimonial-placeholder">
+      <p class="testimonial-text">More reviews coming soon. Currently working with select creators — get in touch to be next.</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar">?</div>
+        <div>
+          <div class="testimonial-name">Your Channel Here</div>
+          <div class="testimonial-channel">Upcoming Collaboration</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLACEHOLDER 3 -->
+    <div class="testimonial-card testimonial-placeholder">
+      <p class="testimonial-text">Free sample edits available — no commitment required. See for yourself before deciding.</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar">+</div>
+        <div>
+          <div class="testimonial-name">Work With Me</div>
+          <div class="testimonial-channel">Request a Sample Below</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════ CONTACT -->
+<section id="contact">
+  <div class="section-label reveal">Contact</div>
+  <h2 class="section-title reveal">Let's Work Together</h2>
+  <p class="contact-intro reveal">
+    <em>First step is always a free sample edit</em> — I'll cut a short clip from one of your existing videos so you can see exactly how I work before committing to anything. No risk, no pressure.
+  </p>
+
+  <!--
+    ════════════════════════════════════════════════
+    WEB3FORMS SETUP — 2 STEPS:
+    1. Go to web3forms.com and enter your email
+    2. They'll email you an Access Key
+    3. Replace YOUR_WEB3FORMS_ACCESS_KEY below with that key
+    ════════════════════════════════════════════════
+  -->
+  <form id="contactForm" class="reveal" action="https://api.web3forms.com/submit" method="POST">
+    <input type="hidden" name="access_key" value="YOUR_WEB3FORMS_ACCESS_KEY">
+    <input type="hidden" name="subject" value="New Inquiry – Jotham Cuts">
+    <input type="hidden" name="redirect" value="false">
+    <input type="checkbox" name="botcheck" style="display:none">
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Your Name</label>
+        <input class="form-input" type="text" name="name" placeholder="Channel / Creator name" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Your Email</label>
+        <input class="form-input" type="email" name="email" placeholder="your@email.com" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Your YouTube Channel Link</label>
+      <input class="form-input" type="url" name="channel" placeholder="https://youtube.com/@yourchannel">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Content Type</label>
+      <select class="form-select" name="content_type">
+        <option value="">Select your niche...</option>
+        <option>Outdoor / Adventure</option>
+        <option>Metal Detecting / Rockhounding</option>
+        <option>Fishing / Hunting</option>
+        <option>Restoration / DIY</option>
+        <option>Comedy / Sports</option>
+        <option>Vlog / Documentary</option>
+        <option>Education / Talking Head</option>
+        <option>Other</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Message</label>
+      <textarea class="form-textarea" name="message" placeholder="Tell me about your channel, what you're looking for, and I'll get back to you within 24 hours..." required></textarea>
+    </div>
+
+    <button type="submit" class="form-submit" id="submitBtn">
+      Send Message — I'll Reply Within 24hrs →
+    </button>
+
+    <p class="form-note">
+      First project always includes a <em>free sample edit</em> — no commitment required.
+    </p>
+  </form>
+
+  <div class="form-success" id="formSuccess">
+    <p>✓ Message received. I'll reply within 24 hours.<br>Looking forward to working together.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════ FOOTER -->
+<footer>
+  <div class="footer-logo">Jotham <span>Cuts</span></div>
+  <div class="footer-links">
+    <a href="#about">About</a>
+    <a href="#portfolio">Work</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <div class="footer-copy">© 2026 Jotham Cuts · Retention-focused video editing · DaVinci Resolve</div>
+</footer>
+
+<!-- Timeline -->
+<div class="timeline-bar" id="timeline"></div>
+<div class="playhead"></div>
+<div class="timecode" id="timecode">TC <span>00:00:00:00</span></div>
+
+<script>
+// Cursor
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursorRing');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove', e => {
+  mx=e.clientX; my=e.clientY;
+  cursor.style.left=mx+'px'; cursor.style.top=my+'px';
+});
+(function animateRing() {
+  rx+=(mx-rx)*.12; ry+=(my-ry)*.12;
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(animateRing);
+})();
+document.querySelectorAll('a,button,select,input,textarea').forEach(el => {
+  el.addEventListener('mouseenter',()=>{cursor.style.width='20px';cursor.style.height='20px';ring.style.width='50px';ring.style.height='50px';});
+  el.addEventListener('mouseleave',()=>{cursor.style.width='12px';cursor.style.height='12px';ring.style.width='36px';ring.style.height='36px';});
+});
+
+// Scroll reveal
+const revealEls = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.12 });
+revealEls.forEach(el => observer.observe(el));
+
+// Timeline
+const tl = document.getElementById('timeline');
+const tlColors = ['#1e3a2f','#3a1a0e','#1a2a3e','#2a1a0a','#1e1e3a','#3a2a0e','#2a2a1a'];
+const tlWidths = [28,44,18,60,32,22,50,36,16,48,24,56];
+for(let i=0;i<80;i++){
+  const b=document.createElement('div');
+  b.className='tl-block';
+  b.style.width=tlWidths[i%tlWidths.length]+'px';
+  b.style.background=tlColors[i%tlColors.length];
+  tl.appendChild(b);
+}
+
+// Timecode
+function updateTC(){
+  const n=new Date();
+  const pad=v=>String(v).padStart(2,'0');
+  const f=String(Math.floor(n.getMilliseconds()/33.3)).padStart(2,'0');
+  document.querySelector('#timecode span').textContent=`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}:${f}`;
+}
+setInterval(updateTC,33);
+
+// Form submission
+document.getElementById('contactForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      body: new FormData(this)
+    });
+    const data = await res.json();
+    if(data.success) {
+      this.style.display = 'none';
+      document.getElementById('formSuccess').classList.add('show');
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Send Message — I\'ll Reply Within 24hrs →';
+      alert('Something went wrong. Please email directly.');
+    }
+  } catch(err) {
+    btn.disabled = false;
+    btn.textContent = 'Send Message — I\'ll Reply Within 24hrs →';
+    alert('Something went wrong. Please try again.');
+  }
+});
+</script>
+</body>
+</html>
